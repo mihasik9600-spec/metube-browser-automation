@@ -22,4 +22,6 @@ RUN chmod +x /entrypoint.sh
 ENV YTDL_OPTIONS="--socket-timeout 30 --sleep-interval 2 --max-sleep-interval 10 --extractor-args youtube:player_client=web,android --no-warnings"
 ENV BROWSER_EXECUTABLE_PATH="/usr/bin/chromium"
 
+EXPOSE 8081
+
 ENTRYPOINT ["/entrypoint.sh"]
