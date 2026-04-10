@@ -47,5 +47,10 @@ if trace:
 print(json.dumps(opts, separators=(',', ':')))
 ")"
 
+# Debug: surface key env vars so Railway logs confirm the entrypoint ran and POT is wired up.
+# Set BGUTIL_POT_BASE_URL=http://bgutil-ytdlp-pot-provider.railway.internal:4416 on the Railway service.
+echo "DEBUG: BGUTIL_POT_BASE_URL=${BGUTIL_POT_BASE_URL}"
+echo "DEBUG: Final YTDL_OPTIONS=${YTDL_OPTIONS}"
+
 cd /app
 exec /usr/bin/tini -g -- /app/docker-entrypoint.sh
