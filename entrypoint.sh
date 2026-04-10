@@ -31,6 +31,19 @@ if pot_url:
     ea['youtubepot-bgutilhttp'] = pot
     opts['extractor_args'] = ea
 
+# Verbose POT logs: https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/extractor/youtube/pot/README.md#debugging
+trace = (os.environ.get('BGUTIL_POT_TRACE') or '').strip().lower() in ('1', 'true', 'yes')
+if trace:
+    ea = opts.get('extractor_args')
+    if not isinstance(ea, dict):
+        ea = {}
+    yt = ea.get('youtube')
+    if not isinstance(yt, dict):
+        yt = {}
+    yt['pot_trace'] = True
+    ea['youtube'] = yt
+    opts['extractor_args'] = ea
+
 print(json.dumps(opts, separators=(',', ':')))
 ")"
 
