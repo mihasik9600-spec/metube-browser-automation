@@ -1,9 +1,6 @@
 #!/bin/bash
 set -e
 
-# Configure yt-dlp to use browser automation for YouTube
-export YTDL_OPTIONS="${YTDL_OPTIONS:---socket-timeout 30 --sleep-interval 2 --max-sleep-interval 10 --extractor-args youtube:player_client=web,android --no-warnings}"
-
 # Create yt-dlp config directory
 mkdir -p /root/.config/yt-dlp
 
@@ -18,5 +15,7 @@ cat > /root/.config/yt-dlp/config.txt << 'EOF'
 --user-agent "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 EOF
 
-# Start metube with the original entrypoint
-exec /usr/local/bin/python3 -m metube.main
+# Delegate to the base image's original metube entrypoint.
+# The alexta69/metube image runs the app as a plain script from /app,
+# not as an installed Python package, so we must invoke it that way.
+exec python3 /app/main.py
