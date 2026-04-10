@@ -1,9 +1,38 @@
 #!/bin/sh
 set -e
 
-# yt-dlp tuning lives in Dockerfile ENV YTDL_OPTIONS (JSON). MeTube rejects CLI-style strings there.
+# Merge optional cookie file + BgUtils POT HTTP base URL into YTDL_OPTIONS (MeTube → yt-dlp).
+# POT: https://github.com/Brainicism/bgutil-ytdlp-pot-provider — does not replace cookies if you still mount them.
+export YTDL_OPTIONS="$(python3 -c "
+import json, os, pathlib
 
-# Upstream image layout: WORKDIR /app, app code at app/main.py → path is /app/app/main.py.
-# Official entry: tini → docker-entrypoint.sh (chown, bgutil-pot, gosu … python3 app/main.py).
+raw = os.environ.get('YTDL_OPTIONS', '{}')
+try:
+    opts = json.loads(raw)
+    if not isinstance(opts, dict):
+        opts = {}
+except Exception:
+    opts = {}
+
+path = (os.environ.get('YOUTUBE_COOKIES_PATH') or '/config/youtube_cookies.txt').strip()
+p = pathlib.Path(path)
+if p.is_file() and p.stat().st_size > 0:
+    opts['cookiefile'] = str(p)
+
+pot_url = (os.environ.get('BGUTIL_POT_BASE_URL') or '').strip()
+if pot_url:
+    ea = opts.get('extractor_args')
+    if not isinstance(ea, dict):
+        ea = {}
+    pot = ea.get('youtubepot-bgutilhttp')
+    if not isinstance(pot, dict):
+        pot = {}
+    pot['base_url'] = pot_url
+    ea['youtubepot-bgutilhttp'] = pot
+    opts['extractor_args'] = ea
+
+print(json.dumps(opts, separators=(',', ':')))
+")"
+
 cd /app
 exec /usr/bin/tini -g -- /app/docker-entrypoint.sh
