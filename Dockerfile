@@ -1,12 +1,16 @@
 FROM ghcr.io/alexta69/metube:latest
 
+# MUST match the Brainicism POT HTTP Docker tag on Railway (e.g. brainicism/bgutil-ytdlp-pot-provider:1.3.1).
+# Mismatch → yt-dlp warns then may fall back to CLI provider and crash. Bump this and the Railway image together.
+ARG BGUTIL_PLUGIN_VERSION=1.3.1
+
 # Upgrade yt-dlp to match current YouTube extractors (base image pins via uv; pip needs --break-system-packages on PEP 668).
 # No Playwright/Chromium — they are not used by yt-dlp and add weight and attack surface.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     && python3 -m pip install --upgrade --no-cache-dir --break-system-packages \
         yt-dlp \
-        bgutil-ytdlp-pot-provider \
+        "bgutil-ytdlp-pot-provider==${BGUTIL_PLUGIN_VERSION}" \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /config && chmod 755 /config
