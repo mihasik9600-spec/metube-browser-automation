@@ -2,7 +2,7 @@
 set -e
 
 # Merge optional cookie file + BgUtils POT HTTP base URL into YTDL_OPTIONS (MeTube → yt-dlp).
-# POT: https://github.com/Brainicism/bgutil-ytdlp-pot-provider — does not replace cookies if you still mount them.
+# POT: https://github.com/Brainicism/bgutil-ytdlp-pot-provider
 export YTDL_OPTIONS="$(python3 -c "
 import json, os, pathlib
 
@@ -19,19 +19,46 @@ p = pathlib.Path(path)
 if p.is_file() and p.stat().st_size > 0:
     opts['cookiefile'] = str(p)
 
-pot_url = (os.environ.get('BGUTIL_POT_BASE_URL') or '').strip()
-if pot_url:
-    ea = opts.get('extractor_args')
-    if not isinstance(ea, dict):
-        ea = {}
-    pot = ea.get('youtubepot-bgutilhttp')
-    if not isinstance(pot, dict):
-        pot = {}
-    pot['base_url'] = pot_url
-    ea['youtubepot-bgutilhttp'] = pot
-    opts['extractor_args'] = ea
+def normalize_pot_url(u):
+    u = (u or '').strip()
+    if not u:
+        return ''
+    if '://' not in u:
+        u = 'http://' + u
+    return u
 
-# Verbose POT logs: https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/extractor/youtube/pot/README.md#debugging
+pot_url = normalize_pot_url(os.environ.get('BGUTIL_POT_BASE_URL') or '')
+
+ea = opts.get('extractor_args')
+if not isinstance(ea, dict):
+    ea = {}
+
+# Drop broken POT blocks (empty base_url causes: Unsupported url scheme \"\")
+pot = ea.get('youtubepot-bgutilhttp')
+if isinstance(pot, dict):
+    existing = normalize_pot_url(str(pot.get('base_url') or ''))
+    if not existing and not pot_url:
+        ea.pop('youtubepot-bgutilhttp', None)
+    elif pot_url:
+        pot['base_url'] = pot_url
+        ea['youtubepot-bgutilhttp'] = pot
+    elif existing:
+        pot['base_url'] = existing
+        ea['youtubepot-bgutilhttp'] = pot
+elif pot_url:
+    ea['youtubepot-bgutilhttp'] = {'base_url': pot_url}
+
+# Second pass: never leave youtubepot-bgutilhttp without a non-empty base_url
+pot = ea.get('youtubepot-bgutilhttp')
+if isinstance(pot, dict):
+    if not normalize_pot_url(str(pot.get('base_url') or '')):
+        ea.pop('youtubepot-bgutilhttp', None)
+
+if ea:
+    opts['extractor_args'] = ea
+else:
+    opts.pop('extractor_args', None)
+
 trace = (os.environ.get('BGUTIL_POT_TRACE') or '').strip().lower() in ('1', 'true', 'yes')
 if trace:
     ea = opts.get('extractor_args')
@@ -47,10 +74,11 @@ if trace:
 print(json.dumps(opts, separators=(',', ':')))
 ")"
 
-# Debug: surface key env vars so Railway logs confirm the entrypoint ran and POT is wired up.
-# Set BGUTIL_POT_BASE_URL=http://bgutil-ytdlp-pot-provider.railway.internal:4416 on the Railway service.
-echo "DEBUG: BGUTIL_POT_BASE_URL=${BGUTIL_POT_BASE_URL}"
-echo "DEBUG: Final YTDL_OPTIONS=${YTDL_OPTIONS}"
+if [ -n "${BGUTIL_POT_BASE_URL:-}" ]; then
+  echo "metube-entrypoint: BGUTIL_POT_BASE_URL is set (POT enabled)"
+else
+  echo "metube-entrypoint: BGUTIL_POT_BASE_URL is empty — POT disabled; ensure Railway YTDL_OPTIONS has no empty youtubepot-bgutilhttp"
+fi
 
 cd /app
 exec /usr/bin/tini -g -- /app/docker-entrypoint.sh
