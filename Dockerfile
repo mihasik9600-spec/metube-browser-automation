@@ -4,8 +4,6 @@ FROM ghcr.io/alexta69/metube:latest
 RUN apt-get update && apt-get install -y \
     python3-pip \
     libxss1 \
-    libappindicator1 \
-    libindicator7 \
     fonts-liberation \
     xdg-utils \
     wget \
