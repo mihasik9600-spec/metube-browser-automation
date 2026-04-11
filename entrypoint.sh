@@ -27,7 +27,7 @@ def normalize_pot_url(u):
         u = 'http://' + u
     return u
 
-pot_url = bgutil-ytdlp-pot-provider.railway.internal
+pot_url = normalize_pot_url(os.environ.get('BGUTIL_POT_BASE_URL') or '')
 
 ea = opts.get('extractor_args')
 if not isinstance(ea, dict):
@@ -74,10 +74,10 @@ if trace:
 print(json.dumps(opts, separators=(',', ':')))
 ")"
 
-if [ -n "${bgutil-ytdlp-pot-provider.railway.internal:-}" ]; then
-  echo "metube-entrypoint: bgutil-ytdlp-pot-provider.railway.internal is set (POT enabled)"
+if [ -n "${BGUTIL_POT_BASE_URL:-}" ]; then
+  echo "metube-entrypoint: BGUTIL_POT_BASE_URL is set (POT enabled)"
 else
-  echo "metube-entrypoint: bgutil-ytdlp-pot-provider.railway.internal is empty — POT disabled; ensure Railway YTDL_OPTIONS has no empty youtubepot-bgutilhttp"
+  echo "metube-entrypoint: BGUTIL_POT_BASE_URL is empty — POT disabled; ensure Railway YTDL_OPTIONS has no empty youtubepot-bgutilhttp"
 fi
 
 cd /app
